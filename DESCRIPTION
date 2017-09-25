@@ -1,12 +1,12 @@
 Package: MNCC
 Type: Package
-Title: Multivariate Normal Control Chart
+Title: Phase I Shewhart X-bar Chart 
 Version: 0.1.0
 Authors@R: c(person("Yuhui", "Yao", role = c("aut", "cre"),
                     email = "yyao17@crimson.ua.edu"))
 Maintainer: Yuhui Yao <yyao17@crimson.ua.edu>
 Author: Yuhui Yao [aut]
-Description: The utility of this package is in building Shewhart-type control chart by multivariate normal distribution model.
+Description: The utility of this package is in building a Shewhart-type Phase I control chart for the mean using the multivariate normal/t distribution.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
