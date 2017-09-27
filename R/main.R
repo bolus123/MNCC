@@ -99,7 +99,7 @@ get.cc.mvt <- function(
 
     K <- L * c4.f(nu) * sqrt((m - 1) / m)             #get K
 
-    list(L = L, K = K)
+    list(l = L, k = K)
 
 }
 
@@ -240,7 +240,7 @@ get.cc.mvn <- function(
 
     L <- K / c4.f(nu) * sqrt(m / (m - 1))
 
-    list(L = L, K = K)
+    list(l = L, k = K)
 
 
 }
