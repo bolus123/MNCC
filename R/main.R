@@ -56,7 +56,7 @@ get.cc.mvt <- function(
                  ,nu
                  ,FAP = 0.1
                  ,Phase1 = TRUE
-                 ,off.diag = NULL
+                 ,off.diag = -1/(m - 1)
                  ,alternative = '2-sided'
                  ,maxiter = 10000
 
@@ -185,7 +185,7 @@ get.cc.mvn <- function(
                  ,nu
                  ,FAP = 0.1
                  ,Phase1 = TRUE
-                 ,off.diag = NULL
+                 ,off.diag = -1/(m - 1)
                  ,alternative = '2-sided'
                  ,interval = c(1, 7)
                  ,maxiter = 10000
@@ -196,7 +196,7 @@ get.cc.mvn <- function(
                                                             #to obtain L and K based on
     MCMC <- FALSE                                           #multivariate normal.
                                                             #MCMC part is not available now.
-    if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
+    #if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
 
 
     corr.P <- corr.f(m = m, off.diag = off.diag)
@@ -253,7 +253,7 @@ get.cc <- function(
             m
             ,nu
             ,FAP = 0.1
-            ,off.diag = NULL
+            ,off.diag = -1/(m - 1)
             ,alternative = '2-sided'
             ,maxiter = 10000
             ,method = 'direct'
@@ -269,7 +269,7 @@ get.cc <- function(
     Phase1 <- TRUE
 
 
-    if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
+    #if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
 
     is.int <- ifelse(nu == round(nu), 1, 0)
 
@@ -315,7 +315,7 @@ get.FAP0 <- function(
             K
             ,m
             ,nu
-            ,off.diag = NULL
+            ,off.diag = -1/(m - 1)
             ,alternative = '2-sided'
             ,maxiter = 10000
             ,indirect.subdivisions = 100L
@@ -329,7 +329,7 @@ get.FAP0 <- function(
 
     is.int <- ifelse(nu == round(nu), 1, 0)
 
-    if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
+    #if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
 
     corr.P <- corr.f(m = m, off.diag = off.diag)
 
@@ -360,7 +360,7 @@ get.FAP0 <- function(
 MNCC <- function(
 			X,
 			FAP = 0.1,
-			off.diag = NULL,
+			off.diag = -1/(m - 1),
 			alternative = '2-sided',
 			plot.option = TRUE,
       maxiter = 10000,
