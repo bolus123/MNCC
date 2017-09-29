@@ -18,7 +18,7 @@ License: \tab GPL (>= 3)\cr
 Function 'PH1XBAR' builds a control chart by multivariate normal distribution.
 Function 'get.cc' gets a charting constant by multivariate normal distribution.
 }
-\author{ Yuhui Yao.
+\author{ Yuhui Yao, Subha Chakraborti.
 
 Maintainer: Yuhui Yao <yyao17@crimson.ua.edu>
 }
