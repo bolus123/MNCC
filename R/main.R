@@ -9,7 +9,7 @@ dchi <- adehabitatLT::dchi
 #source('https://raw.githubusercontent.com/bolus123/Statistical-Process-Control/master/MKLswitch.R')
 
 ####################################################################################################################################################
-    #parts of getting L
+    #parts of getting the charting constant l
 ####################################################################################################################################################
 
 c4.f <- function(nu) sqrt(2 / nu) * 1 / beta(nu / 2, 1 / 2) * sqrt(pi)             #c4.function
@@ -48,7 +48,7 @@ cons.f <- function(nu, tau){
 
 
 ####################################################################################################################################################
-    #get L by multivariate T
+    #get l using the multivariate t cdf
 ####################################################################################################################################################
 
 get.cc.mvt <- function(
@@ -62,8 +62,8 @@ get.cc.mvt <- function(
 
 ){
                                                                               #The purpose of this function is
-    MCMC <- FALSE                                                             #to obtain L and K based on
-                                                                              #multivariate T.
+    MCMC <- FALSE                                                             #to obtain l and k based on
+                                                                              #multivariate t.
                                                                               #MCMC part is not available now.
 
     #if (off.diag == NULL) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
