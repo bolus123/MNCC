@@ -12,7 +12,7 @@ The utlity of this package is to build a control chart by multivariate normal di
 Package: \tab PH1XBAR\cr
 Type: \tab Package\cr
 % Version: \tab 1.0\cr
-Date: \tab 2017-09-24\cr
+Date: \tab 2017-09-29\cr
 License: \tab GPL (>= 3)\cr
 }
 Function 'PH1XBAR' builds a control chart by multivariate normal distribution.
