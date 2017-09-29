@@ -1,15 +1,15 @@
-\name{MNCC.data}
-\alias{MNCC.data}
-\title{MNCC.data}
+\name{PH1XBAR.data}
+\alias{PH1XBAR.data}
+\title{PH1XBAR.data}
  \usage{
-MNCC.data()
+PH1XBAR.data()
 }
 
 \description{
 Data from table 6.3 (Montgomery, 2013)
 }
 \examples{
-MNCC.data()
+PH1XBAR.data()
 }
 \references{
 Montgomery DC. Introduction to Statistical Quality Control (7thed.). New York, NY: Wiley; 2013

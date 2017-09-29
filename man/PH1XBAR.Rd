@@ -1,8 +1,8 @@
-\name{MNCC}
-\alias{MNCC}
-\title{MNCC}
+\name{PH1XBAR}
+\alias{PH1XBAR}
+\title{PH1XBAR}
 \usage{
-MNCC(X, FAP = 0.1, off.diag = -1/(m - 1), alternative = '2-sided',
+PH1XBAR(X, FAP = 0.1, off.diag = -1/(m - 1), alternative = '2-sided',
 plot.option = TRUE, maxiter = 10000)
 }
 \arguments{
@@ -17,6 +17,6 @@ plot.option = TRUE, maxiter = 10000)
 Build a control chart based on multivariate normal distribution.
 }
 \examples{
-X <- MNCC.data()
-MNCC(X)
+X <- PH1XBAR.data()
+PH1XBAR(X)
 }
