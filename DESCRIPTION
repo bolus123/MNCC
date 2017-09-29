@@ -11,4 +11,4 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Depends: R (>= 3.3.0), mvtnorm, adehabitatLT
-URL: https://github.com/bolus123/MNCC
+URL: https://github.com/bolus123/PH1XBAR

@@ -6,4 +6,4 @@ importFrom("stats", "integrate", "uniroot")
 importFrom("graphics", "axis", "plot", "points", "text")
 importFrom("stats", "var")
 
-export('MNCC', 'MNCC.data', 'get.cc')
+export('PH1XBAR', 'PH1XBAR.data', 'get.cc')
