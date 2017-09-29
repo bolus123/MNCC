@@ -403,7 +403,7 @@ PH1XBAR <- function(
 
 	if (plot.option == TRUE){
 
-		plot(c(1, m), c(LCL, UCL), xaxt = "n", xlab = 'Subgroup', ylab = 'Sample Means', type = 'n')
+		plot(c(1, m), c(LCL, UCL), xaxt = "n", xlab = 'Subgroup', ylab = 'Sample Mean', type = 'n')
 
 		axis(side = 1, at = 1:m)
 
