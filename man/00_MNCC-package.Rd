@@ -23,7 +23,7 @@ Function 'get.cc' gets a charting constant by multivariate normal distribution.
 Maintainer: Yuhui Yao <yyao17@crimson.ua.edu>
 }
 \references{
-XXXX
+Champ CW, Jones LA. Designing Phase I X-bar charts with small sample sizes. Quality and Reliability Engineering International. 2004;20:497-510
 }
 \examples{
 %\dontrun{
@@ -32,14 +32,6 @@ X <- MNCC.data()
 MNCC(X)
 
 # Get a charting constant
-get.cc(
-            20
-            ,80
-            ,FAP = 0.1
-            ,off.diag = NULL
-            ,alternative = '2-sided'
-            ,maxiter = 10000
-            ,method = 'direct'
-)
+get.cc(m = 10, nu = 40, FAP = 0.05)
 %}
 }

@@ -1,5 +1,5 @@
 ####################################################################################################################################################
-    #Based on Champ and Jones(2004), Rose and Does(1995)
+    #Based on Champ and Jones(2004)
 ####################################################################################################################################################
 require(mvtnorm)
 #require(adehabitatLT)
@@ -256,25 +256,30 @@ get.cc <- function(
             ,off.diag = -1/(m - 1)
             ,alternative = '2-sided'
             ,maxiter = 10000
-            ,method = 'direct'
-            ,indirect.interval = c(1, 7)
-            ,indirect.subdivisions = 100L
-            ,indirect.tol = .Machine$double.eps^0.25
+            #,method = 'direct'
+            #,indirect.interval = c(1, 7)
+            #,indirect.subdivisions = 100L
+            #,indirect.tol = .Machine$double.eps^0.25
 
 
 ){                                                  #The purpose of this function is to obtain L and K
                                                     #by multivariate T or multivariate normal.
                                                     #Multivariate normal is so time-consuming
                                                     #that I do not recommend.
-    Phase1 <- TRUE
 
+    Phase1 <- TRUE                                  #need to delete if need to use Phase 2
+
+	method <- 'direct'								#need to delete if need to use indirect
 
     #if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
 
     is.int <- ifelse(nu == round(nu), 1, 0)
 
-    if (method == 'direct' & is.int == 1) {                       #using multivariate T to obtain L and K
+	if (is.int == 0) cat('Nu is not an integrer. Please check', '\n') #need to delete if need to use indirect
 
+    #if (method == 'direct' & is.int == 1) {                       #using multivariate T to obtain L and K
+
+	if (is.int == 1) {                                             #need to delete if need to use indirect
         get.cc.mvt(
             m = m
             ,nu = nu
@@ -358,16 +363,16 @@ get.FAP0 <- function(
 ####################################################################################################################################################
 
 MNCC <- function(
-			X,
-			FAP = 0.1,
-			off.diag = -1/(m - 1),
-			alternative = '2-sided',
-			plot.option = TRUE,
-      maxiter = 10000,
-      method = 'direct',
-			indirect.interval = c(1, 7),
-      indirect.subdivisions = 100L,
-      indirect.tol = .Machine$double.eps^0.25
+			X
+			,FAP = 0.1
+			,off.diag = -1/(m - 1)
+			,alternative = '2-sided'
+			,plot.option = TRUE
+			,maxiter = 10000
+			#,method = 'direct'
+			#,indirect.interval = c(1, 7)
+			#,indirect.subdivisions = 100L,
+			#,indirect.tol = .Machine$double.eps^0.25
 ) {
 
 
@@ -380,17 +385,18 @@ MNCC <- function(
 
 	sigma.v <- sqrt(sum(apply(X, 1, var)) / m) / c4.f(m * (n - 1))
 
-	k <- get.cc(m,
-	            m * (n - 1),
-	            FAP,
-	            off.diag,
-	            alternative,
-	            maxiter,
-	            method,
-	            indirect.interval,
-	            indirect.subdivisions,
-	            indirect.tol
-	     )$K
+	k <- get.cc(
+	            m
+	            ,m * (n - 1)
+	            ,FAP
+	            ,off.diag
+	            ,alternative
+	            ,maxiter
+	            #,method
+	            #,indirect.interval
+	            #,indirect.subdivisions
+	            #,indirect.tol
+	     )$k
 
 	LCL <- X.bar.bar - k * sigma.v / sqrt(n)
 	UCL <- X.bar.bar + k * sigma.v / sqrt(n)

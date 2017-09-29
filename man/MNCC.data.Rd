@@ -12,5 +12,5 @@ Data from table 6.3 (Montgomery, 2013)
 MNCC.data()
 }
 \references{
-xxxx
+Montgomery DC. Introduction to Statistical Quality Control (7thed.). New York, NY: Wiley; 2013
 }
