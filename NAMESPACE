@@ -1,5 +1,6 @@
-import('mvtnorm', 'pmvt', 'qmvt', 'pmvnorm')
+import('mvtnorm')
 
+importFrom("stats", "dchisq", "pnorm", "qchisq", "qnorm", "runif")
 importFrom("stats", "integrate", "uniroot")
 importFrom("graphics", "axis", "plot", "points", "text")
 importFrom("stats", "var")

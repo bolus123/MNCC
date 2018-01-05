@@ -4,8 +4,23 @@
 \usage{
 PH2XBAR(
     X
-    ,PH1.info = list(X = NULL, mu = NULL, sigma = NULL, k = NULL, n = NULL, model = "ANOVA-based")
-    ,c.ii.info = list(c.ii = NULL, method = 'UC', ARL0 = 370, p = 0.05, eps = 0.1, interval.c.ii.UC = c(1, 3.2), interval.c.ii.EPC = c(1, 10))
+    ,PH1.info = list(
+                  X = NULL
+                  , mu = NULL
+                  , sigma = NULL
+                  , k = NULL
+                  , n = NULL
+                  , model = "ANOVA-based"
+                )
+    ,c.ii.info = list(
+                  c.ii = NULL
+                  , method = 'UC'
+                  , ARL0 = 370
+                  , p = 0.05
+                  , eps = 0.1
+                  , interval.c.ii.UC = c(1, 3.2)
+                  , interval.c.ii.EPC = c(1, 10)
+                )
     #,alternative = '2-sided'
     ,c4.option = TRUE
     ,plot.option = TRUE
@@ -23,7 +38,7 @@ PH2XBAR(
 \description{
 Build a Phase II Shewhart control chart based on the unconditional method and/or the exceedance probability criterion}
 \examples{
-# Build a Phase I ANOVA-based Shewhart control chart 
+# Build a Phase I ANOVA-based Shewhart control chart
 X <- PH2XBAR.data()
 PH2XBAR(
     X

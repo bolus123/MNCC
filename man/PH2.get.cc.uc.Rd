@@ -3,12 +3,12 @@
 \title{PH2.get.cc.uc}
  \usage{
 PH2.get.cc.uc(
-	ARL0, 
-	k, 
-	nu = k - 1, 
-	c4.option = TRUE, 
-	interval = c(1, 10), 
-	u = runif(100000), 
+	ARL0,
+	k,
+	nu = k - 1,
+	c4.option = TRUE,
+	interval = c(1, 10),
+	u = runif(100000),
 	v = runif(100000)
 )
 }
@@ -26,5 +26,5 @@ PH2.get.cc.uc(
 Obtain a Phase II charting constant by the unconditional method.
 }
 \examples{
-get.cc(m = 10, nu = 40, FAP = 0.05)
+PH2.get.cc.uc(ARL0 = 370,	k = 30)
 }
