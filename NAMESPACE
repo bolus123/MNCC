@@ -1,9 +1,7 @@
-import('mvtnorm')
-
-importFrom('adehabitatLT', 'dchi')
+import('mvtnorm', 'pmvt', 'qmvt', 'pmvnorm')
 
 importFrom("stats", "integrate", "uniroot")
 importFrom("graphics", "axis", "plot", "points", "text")
 importFrom("stats", "var")
 
-export('PH1XBAR', 'PH1XBAR.data', 'get.cc')
+export('PH1XBAR', 'PH1XBAR.data', 'PH1.get.cc', 'PH2.get.cc.uc', 'PH2.get.cc.EPC', 'PH2.get.ARLb.EPC', 'PH2.get.k.EPC', 'PH2XBAR', 'PH2XBAR.data')

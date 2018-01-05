@@ -313,7 +313,7 @@ PH1.get.cc.mvn <- function(
                 pu = pu,
                 #alternative = alternative,
                 c4.option = c4.option,
-                subdivisions = 2000,
+                subdivisions = subdivisions,
                 tol = tol,
                 rel.tol = tol,
                 maxiter = maxiter
@@ -571,7 +571,7 @@ PH1XBAR <- function(
 
 	}
 
-	list(CL = X.bar.bar, sigma = sigma.v, c.i = c.i, k = k, nu = nu, LCL = LCL, UCL = UCL, CS = X.bar)
+	list(CL = X.bar.bar, sigma = sigma.v, PH1.cc = c.i, k = k, nu = nu, LCL = LCL, UCL = UCL, CS = X.bar)
 
 }
 
@@ -645,7 +645,7 @@ PH2.CARL.intgrand <- function(u, v, c.ii, k, nu = k - 1, c4.option = TRUE) 1 / P
 ####################################################################################################################################################
 
 
-PH2.get.c.ii.uc <- function(ARL0, k, nu = k - 1, c4.option = TRUE, interval, u, v){
+PH2.get.cc.uc <- function(ARL0, k, nu = k - 1, c4.option = TRUE, interval = c(1, 10), u = runif(100000), v = runif(100000)){
 
         PH2.root.finding.uc <- function(c.ii, k, nu = k - 1, c4.option = TRUE, ARL0, u, v) {
 
@@ -665,13 +665,13 @@ PH2.get.c.ii.uc <- function(ARL0, k, nu = k - 1, c4.option = TRUE, interval, u, 
 ####################################################################################################################################################
 
 
-PH2.root.finding.EPC <- function(p, k, nu = k - 1, c.ii, ARLb, c4.option = TRUE, u, v){
+PH2.root.finding.EPC <- function(p, k, nu = k - 1, c.ii, ARLb, c4.option = TRUE, u = runif(100000), v = runif(100000)){
 
     1 - p - mean(PH2.CARL.intgrand(u, v, c.ii, k, nu, c4.option) >= ARLb)
 
 }
 
-PH2.get.c.ii.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, c4.option = TRUE, interval, u, v){
+PH2.get.cc.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, c4.option = TRUE, interval = c(1, 10), u = runif(100000), v = runif(100000)){
 
     ARLb <- (1 - eps) * ARL0 
 
@@ -699,7 +699,7 @@ PH2.get.c.ii.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, c4.option 
 #PH2.get.c.ii.EPC(p = 0.05, k = 100, eps = 0.1, ARL0 = 500, c4.option = TRUE, interval = c(1, 5), u = u, v = v)
 
 
-PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, c4.option = TRUE, interval = c(1, 1000), u, v){
+PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, c4.option = TRUE, interval = c(1, 1000), u = runif(100000), v = runif(100000)){
 
     rt <- uniroot(
             PH2.root.finding.EPC, 
@@ -724,7 +724,7 @@ PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, c4.option = TR
 #PH2.get.ARLb.EPC(p = 0.1, k = 100, c.ii = 3, c4.option = TRUE, u = u, v = v)
 #PH2.get.ARLb.EPC(p = 0.1, k = 100, c.ii = 3, ARL0 = 370, c4.option = TRUE, u = u, v = v)
 
-PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, c4.option = TRUE, interval = c(1000, 2000), model = 'ANOVA-based', n = 10, u, v){
+PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, c4.option = TRUE, interval = c(1000, 2000), model = 'ANOVA-based', n = 10, u = runif(100000), v = runif(100000)){
 
     if (model == 'ANOVA-based') {
 
@@ -767,7 +767,7 @@ PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, c4.option = TRUE, inte
             v = v
         )$root
 
-    rt
+    list(k = rt, PH1.sample.size = rt * n)
 
 }
 
@@ -781,88 +781,58 @@ PH2XBAR <- function(
             #,alternative = '2-sided'
             ,c4.option = TRUE
             ,plot.option = TRUE
-            ,maxsim = 10000
-            ,...
+            ,maxsim = 100000
 ) {
 
     alternative = '2-sided'                                                   #turn off the alternative
-
 
     k.ii <- dim(X)[1]
 
     X.bar <- rowMeans(X)
 
 
-        if (is.null(PH1.info$X)){
+    if (is.null(PH1.info$X)){
 
-            k <- PH1.info$k
+        k <- PH1.info$k
 
-            if (PH1.info$model == 'ANOVA-based') {
+        if (PH1.info$model == 'ANOVA-based') {
 
-                nu <- k - 1
+            nu <- k - 1
 
-            } else if (PH1.info$model == 'basic') {
+        } else if (PH1.info$model == 'basic') {
 
-                if (is.null(PH1.info$n)) {
+            if (is.null(PH1.info$n)) {
 
-                    stop('Subgroup size needs to be defined')
-
-                } else {
-
-                    nu <- k * (n - 1)
-
-                }
+                stop('Subgroup size needs to be defined')
 
             } else {
 
-                stop('The model in Phase 1 needs to be defined')
+                nu <- k * (n - 1)
 
             }
 
-            corr.par <- corr.par.f(nu, c4.option)
-
-            X.bar.bar <- PH1.info$mu
-            sigma.v <- PH1.info$sigma / corr.par
-
         } else {
 
-            PH1.chart <- PH1XBAR(X = PH1.info$X, c.i = 1, model = PH1.info$model, plot.option = FALSE)
-
-            k <- PH1.chart$k
-            nu <- PH1.chart$nu
-
-            X.bar.bar <- PH1.chart$CL
-            sigma.v <- PH1.chart$sigma
+            stop('The model in Phase 1 needs to be defined')
 
         }
 
+        corr.par <- corr.par.f(nu, c4.option)
 
+        X.bar.bar <- PH1.info$mu
+        sigma.v <- PH1.info$sigma / corr.par
 
-        if (is.null(PH1.info$X)){
+    } else {
 
-            k <- PH1.info$k
-            n <- PH1.info$n
-            nu <- k * (n - 1)
+        PH1.chart <- PH1XBAR(X = PH1.info$X, c.i = 1, model = PH1.info$model, plot.option = FALSE)
 
-            corr.par <- corr.par.f(nu, c4.option)
+        k <- PH1.chart$k
+        nu <- PH1.chart$nu
 
-            X.bar.bar <- PH1.info$mu
-            sigma.v <- PH1.info$sigma / corr.par
+        X.bar.bar <- PH1.chart$CL
+        sigma.v <- PH1.chart$sigma
 
-
-        } else {
-
-            k <- dim(PH1.info$X)[1]
-            n <- dim(PH1.info$X)[2]
-            nu <- k - 1
-
-            corr.par <- corr.par.f(nu, c4.option)
-
-            X.bar.bar <- mean(PH1.info$X)
-            sigma.v <- sqrt(sum(apply(PH1.info$X, 1, var)) / k) / corr.par / sqrt(n)
-            
-        }
-
+    }
     
     u <- runif(maxsim)
     v <- runif(maxsim)
@@ -895,23 +865,41 @@ PH2XBAR <- function(
             stop("Please check the method of obtaining charting constants in Phase 2")
         }
 
+        if (UC.flag == 1) {
 
-        UC <- ifelse(
-                UC.flag == 1
-                ,PH2.get.c.ii.uc(ARL0 = c.ii.info$ARL0, k = k, nu = nu, c4.option = c4.option, interval = c.ii.info$interval.c.ii.UC, u = u, v = v)
-                ,NULL
-            )
+            n.c.ii <- n.c.ii + 1
 
-        EPC <- ifelse(
-                EPC.flag == 1
-                ,PH2.get.c.ii.EPC(p = c.ii.info$p, k = k, nu = nu, eps = c.ii.info$eps, ARL0 = c.ii.info$ARL0, c4.option = TRUE, interval = c.ii.info$interval.c.ii.EPC, u = u, v = v)
-                ,NULL
-            )
+            UC <- PH2.get.cc.uc(
+                    ARL0 = c.ii.info$ARL0
+                    , k = k
+                    , nu = nu
+                    , c4.option = c4.option
+                    , interval = c.ii.info$interval.c.ii.UC
+                    , u = u
+                    , v = v
+                )
 
+        }
+
+        if (EPC.flag == 1){
+
+            n.c.ii <- n.c.ii + 1
+
+            EPC <- PH2.get.cc.EPC(
+                    p = c.ii.info$p
+                    , k = k
+                    , nu = nu
+                    , eps = c.ii.info$eps
+                    , ARL0 = c.ii.info$ARL0
+                    , c4.option = TRUE
+                    , interval = c.ii.info$interval.c.ii.EPC
+                    , u = u
+                    , v = v
+                )
+
+        }
 
         c.ii <- list(UC = UC, EPC = EPC)
-
-        
 
     } else {
 
@@ -920,8 +908,6 @@ PH2XBAR <- function(
             c.ii <- c.ii.info$c.ii
 
     }
-
-    
 
     LCL <- X.bar.bar - unlist(c.ii) * sigma.v
     UCL <- X.bar.bar + unlist(c.ii) * sigma.v
@@ -963,7 +949,7 @@ PH2XBAR <- function(
 
     }
 
-    list(CL = X.bar.bar, sigma = sigma.v, k = k, nu = nu, c.ii = unlist(c.ii), LCL = LCL, UCL = UCL, CS = X.bar)
+    list(CL = X.bar.bar, sigma = sigma.v, k = k, nu = nu, PH2.cc = unlist(c.ii), LCL = LCL, UCL = UCL, CS = X.bar)
 
 }
 
