@@ -647,7 +647,7 @@ PH2.CARL.intgrand <- function(u, v, c.ii, k, nu = k - 1, c4.option = TRUE) 1 / P
 ####################################################################################################################################################
 
 
-PH2.get.cc.uc <- function(ARL0, k, nu = k - 1, c4.option = TRUE, interval = c(1, 10), u = runif(100000), v = runif(100000)){
+PH2.get.cc.uc <- function(ARL0, k, nu = k - 1, c4.option = TRUE, interval = c(1, 10), u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
 
         PH2.root.finding.uc <- function(c.ii, k, nu = k - 1, c4.option = TRUE, ARL0, u, v) {
 
@@ -657,7 +657,7 @@ PH2.get.cc.uc <- function(ARL0, k, nu = k - 1, c4.option = TRUE, interval = c(1,
 
     k <- k
 
-    rt <- uniroot(PH2.root.finding.uc, interval = interval, k = k, nu = nu, c4.option = c4.option, ARL0 = ARL0, u = u, v = v)$root
+    rt <- uniroot(PH2.root.finding.uc, interval = interval, k = k, nu = nu, c4.option = c4.option, ARL0 = ARL0, u = u, v = v, tol = tol)$root
 
     rt
 
@@ -673,7 +673,7 @@ PH2.root.finding.EPC <- function(p, k, nu = k - 1, c.ii, ARLb, c4.option = TRUE,
 
 }
 
-PH2.get.cc.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, c4.option = TRUE, interval = c(1, 10), u = runif(100000), v = runif(100000)){
+PH2.get.cc.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, c4.option = TRUE, interval = c(1, 10), u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
 
     ARLb <- (1 - eps) * ARL0
 
@@ -686,7 +686,8 @@ PH2.get.cc.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, c4.option = 
             ARLb = ARLb,
             c4.option = c4.option,
             u = u,
-            v = v
+            v = v,
+            tol = tol
         )$root
 
     rt
@@ -701,7 +702,7 @@ PH2.get.cc.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, c4.option = 
 #PH2.get.c.ii.EPC(p = 0.05, k = 100, eps = 0.1, ARL0 = 500, c4.option = TRUE, interval = c(1, 5), u = u, v = v)
 
 
-PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, c4.option = TRUE, interval = c(1, 1000), u = runif(100000), v = runif(100000)){
+PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, c4.option = TRUE, interval = c(1, 1000), u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
 
     rt <- uniroot(
             PH2.root.finding.EPC,
@@ -712,7 +713,8 @@ PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, c4.option = TR
             c.ii = c.ii,
             c4.option = c4.option,
             u = u,
-            v = v
+            v = v,
+            tol = tol
         )$root
 
     if (is.null(ARL0)) {
@@ -726,7 +728,7 @@ PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, c4.option = TR
 #PH2.get.ARLb.EPC(p = 0.1, k = 100, c.ii = 3, c4.option = TRUE, u = u, v = v)
 #PH2.get.ARLb.EPC(p = 0.1, k = 100, c.ii = 3, ARL0 = 370, c4.option = TRUE, u = u, v = v)
 
-PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, c4.option = TRUE, interval = c(1000, 3000), model = 'ANOVA-based', n = 10, u = runif(100000), v = runif(100000)){
+PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, c4.option = TRUE, interval = c(1000, 3000), model = 'ANOVA-based', n = 10, u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
 
     if (model == 'ANOVA-based') {
 
@@ -766,7 +768,8 @@ PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, c4.option = TRUE, inte
             c4.option = c4.option,
             n = n,
             u = u,
-            v = v
+            v = v,
+            tol = tol
         )$root
 
     list(k = rt, PH1.sample.size = rt * n)
@@ -779,7 +782,7 @@ PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, c4.option = TRUE, inte
 PH2XBAR <- function(
             X
             ,PH1.info = list(X = NULL, mu = NULL, sigma = NULL, k = NULL, n = NULL, model = "ANOVA-based")
-            ,c.ii.info = list(c.ii = NULL, method = 'UC', ARL0 = 370, p = 0.05, eps = 0.1, interval.c.ii.UC = c(1, 3.2), interval.c.ii.EPC = c(1, 10))
+            ,c.ii.info = list(c.ii = NULL, method = 'UC', ARL0 = 370, p = 0.05, eps = 0.1, interval.c.ii.UC = c(1, 3.2), interval.c.ii.EPC = c(1, 10), UC.tol = .Machine$double.eps^0.25, EPC.tol = .Machine$double.eps^0.25)
             #,alternative = '2-sided'
             ,c4.option = TRUE
             ,plot.option = TRUE
@@ -880,6 +883,7 @@ PH2XBAR <- function(
                     , interval = c.ii.info$interval.c.ii.UC
                     , u = u
                     , v = v
+                    , tol = c.ii.info$UC.tol
                 )
 
         }
@@ -894,10 +898,11 @@ PH2XBAR <- function(
                     , nu = nu
                     , eps = c.ii.info$eps
                     , ARL0 = c.ii.info$ARL0
-                    , c4.option = TRUE
+                    , c4.option = c4.option
                     , interval = c.ii.info$interval.c.ii.EPC
                     , u = u
                     , v = v
+                    , tol = c.ii.info$EPC.tol
                 )
 
         }
