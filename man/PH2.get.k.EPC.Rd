@@ -12,7 +12,8 @@ PH2.get.k.EPC(
 	model = 'ANOVA-based', 
 	n = 10, 
 	u = runif(100000), 
-	v = runif(100000)
+	v = runif(100000),
+	tol = .Machine$double.eps^0.25
 )
 }
 \arguments{
@@ -26,6 +27,7 @@ PH2.get.k.EPC(
   \item{n}{ subgroup size }
   \item{u}{ a seqeuence between 0 and 1, and u and v are mutually independent }
   \item{v}{ a seqeuence between 0 and 1, and u and v are mutually independent }
+  \item{tol}{ a tolerance level for the convergence }
 
 }
 \description{

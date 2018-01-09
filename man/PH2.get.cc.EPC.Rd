@@ -11,7 +11,8 @@ PH2.get.cc.EPC(
 	c4.option = TRUE, 
 	interval = c(1, 10), 
 	u = runif(100000), 
-	v = runif(100000)
+	v = runif(100000),
+	tol = .Machine$double.eps^0.25
 )
 }
 \arguments{
@@ -24,6 +25,7 @@ PH2.get.cc.EPC(
   \item{interval}{ the searching range of lower prediction bound of average run length }
   \item{u}{ a seqeuence between 0 and 1, and u and v are mutually independent }
   \item{v}{ a seqeuence between 0 and 1, and u and v are mutually independent }
+  \item{tol}{ a tolerance level for the convergence }
 }
 \description{
 Obtain a Phase II charting constant by exceedance probability criterion.

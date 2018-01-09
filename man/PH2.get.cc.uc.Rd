@@ -9,7 +9,8 @@ PH2.get.cc.uc(
 	c4.option = TRUE,
 	interval = c(1, 10),
 	u = runif(100000),
-	v = runif(100000)
+	v = runif(100000),
+	tol = .Machine$double.eps^0.25
 )
 }
 \arguments{
@@ -20,6 +21,7 @@ PH2.get.cc.uc(
   \item{interval}{ the searching range of Phase II charting constant }
   \item{u}{ a seqeuence between 0 and 1, and u and v are mutually independent }
   \item{v}{ a seqeuence between 0 and 1, and u and v are mutually independent }
+  \item{tol}{ a tolerance level for the convergence }
 
 }
 \description{
