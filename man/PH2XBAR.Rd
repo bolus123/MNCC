@@ -20,6 +20,8 @@ PH2XBAR(
                   , eps = 0.1
                   , interval.c.ii.UC = c(1, 3.2)
                   , interval.c.ii.EPC = c(1, 10)
+                  , UC.tol = .Machine$double.eps^0.25
+                  , EPC.tol = .Machine$double.eps^0.25
                 )
     #,alternative = '2-sided'
     ,c4.option = TRUE
@@ -58,6 +60,8 @@ PH2XBAR(
     				, eps = 0.1
     				, interval.c.ii.UC = c(1, 3.2)
     				, interval.c.ii.EPC = c(1, 10)
+    				, UC.tol = .Machine$double.eps^0.25
+            , EPC.tol = .Machine$double.eps^0.25
     			)
 )
 }

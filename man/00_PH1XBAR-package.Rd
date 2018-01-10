@@ -29,16 +29,16 @@ Yao Y, Chakraborti S. Shewhart-Type Charts in Nonstandard Situations. 2018
 }
 \examples{
 %\dontrun{
-# Build a Phase I basic Shewhart control chart 
+# Build a Phase I basic Shewhart control chart
 X <- PH1XBAR.data()
 PH1XBAR(X, model = 'basic')
 
 
-# Build a Phase I ANOVA-based Shewhart control chart 
+# Build a Phase I ANOVA-based Shewhart control chart
 Y <- PH2XBAR.data()
 PH1XBAR(Y, model = 'ANOVA-based')
 
-# Build a Phase II ANOVA-based Shewhart control chart 
+# Build a Phase II ANOVA-based Shewhart control chart
 set.seed(1234)
 Z<- matrix(rnorm(30 * 5, 245.1, sqrt(20.74) + sqrt(3.5)), nrow = 30, ncol = 5)
 PH2XBAR(
@@ -59,6 +59,8 @@ PH2XBAR(
     				, eps = 0.1
     				, interval.c.ii.UC = c(1, 3.2)
     				, interval.c.ii.EPC = c(1, 10)
+    				, UC.tol = .Machine$double.eps^0.25
+            , EPC.tol = .Machine$double.eps^0.25
     			)
 )
 
