@@ -1,4 +1,4 @@
-\name{PH1XBAR-package}
+\name{PH1AND2XBAR-package}
 \alias{00_PH1XBAR-package}
 \docType{package}
 \title{

@@ -1,6 +1,6 @@
-Package: PH1XBAR
+Package: PH1AND2XBAR
 Type: Package
-Title: Phase I Shewhart X-bar Chart 
+Title: Phase I and Phase II Shewhart X-bar Chart 
 Version: 0.9.1
 Authors@R: c(
 				person("Yuhui", "Yao", role = c("aut", "cre"), email = "yyao17@crimson.ua.edu"),
@@ -13,4 +13,4 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Depends: R (>= 3.3.0), mvtnorm
-URL: https://github.com/bolus123/PH1XBAR
+URL: https://github.com/bolus123/PH1AND2XBAR
