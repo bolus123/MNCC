@@ -382,7 +382,7 @@ PH1.get.cc <- function(
 
     } else if (is.int == 1 && method == 'indirect'){
 
-        cat('Nu is an integer. Using the indirect method may slow the computation process downf.', '\n')
+        cat('Nu is an integer. Using the indirect method may slow the computation process down.', '\n')
 
         PH1.get.cc.mvn(
             k = k
