@@ -23,14 +23,107 @@ require(mvtnorm)
     #parts of getting the charting constant l
 ####################################################################################################################################################
 
+#########################################################################################################
+    # Calculating Owen's table [92]
+#########################################################################################################
+
+# pdf of W
+
+W.f <- function(w, n) { # n is sample size
+  
+  integrand <- function(x, w) {
+    
+    (pnorm(w + x) - pnorm(x)) ^ (n - 2) * dnorm(w + x) * dnorm(x)
+    
+  }
+  
+  n * (n - 1) * integrate(integrand, -Inf, Inf, w = w)$value
+  
+}
+
+# moment of W
+
+W.moment <- function(r, n) { # r is order of moment and n is sample size
+  
+  integrand <- function(w, r, n) {
+    
+    w ^ r * W.f(w, n)
+    
+  }
+  
+  integrand <- Vectorize(integrand, 'w')
+  
+  integrate(integrand, 0, Inf, r = r, n = n)$value
+  
+}
+
+# the result is the 1st moment
+W.moment(r = 1, n = 5)
+# result
+# E(W) = 2.325926
+
+
+#########################################################################################################
+    # calculating the approximate degrees of freedom and the scalar in H. A. David pp 243
+#########################################################################################################
+
+# pars finding function for the approximate method
+# k is number of batches and n is sample size
+
+pars.root.finding <- function(k, n, lower = 1e-6) {
+  
+  root.finding <- function(nu, k, n, ratio) {
+    
+    ratio / k - nu / 2 / pi * beta(nu / 2, 1 / 2) ^ 2 + 1
+    
+  }
+  
+  M <- W.moment(1, n)
+  M2 <- W.moment(2, n)
+  
+  V <- M2 - M ^ 2
+  
+  ratio <- V / M ^ 2
+  
+  cat('dn2/Vn = ', 1 / ratio, '\n')
+  
+  nu <- uniroot(root.finding, c(lower, k * n), k = k, n = n, ratio = ratio)$root
+  
+  C <- sqrt(V / k + M ^ 2)
+  
+  c(nu, C)
+  
+}
+
+#########################################################################################################
+
+d2.f <- function(n) {
+
+    integrand <- function(x, n) {
+    
+        1 - (1 - pnorm(x)) ^ n - pnorm(x) ^ n
+    
+    }
+    
+    integrate(integrand, -Inf, Inf, n = n)$value
+
+}
+
 c4.f <- function(nu) sqrt(2 / nu) * 1 / beta(nu / 2, 1 / 2) * sqrt(pi)             #c4.function
 
-corr.par.f <- function(nu, c4.option) {
-        if (c4.option == TRUE) {
+ub.f <- function(n, nu, var.option = 'c4') {
+
+        if (var.option == 'c4') {
             corr.par <- c4.f(nu)
-        } else {
+        } else if (var.option == 'd2') {
+            corr.par <- d2.f(n)
+        }
+        else {
             corr.par <- 1
         }
+        
+        corr.par
+        
 }
 
 PH1.corr.f <- function(k, off.diag = - 1 / (k - 1)){
@@ -42,88 +135,37 @@ PH1.corr.f <- function(k, off.diag = - 1 / (k - 1)){
 
 }
 
-#first.der.c4.f <- function(nu){
-#
-#    beta.part <- (beta(nu / 2, 1 / 2)) ^ (-1)
-#
-#    digamma1 <- digamma(nu / 2)
-#    digamma2 <- digamma(nu / 2 + 1 / 2)
-#
-#    - sqrt(2 * pi) / 2 * beta.part * ((digamma1 - digamma2) / sqrt(nu) + nu ^ (- 3 /2))
-#
-#}
-#
-#first.der.cons.f <- function(nu, tau){
-#
-#    1 / 2 * (1 - 1 / (nu - tau)) ^ (- 1 / 2) * (nu - tau) ^ - 2
-#
-#}
-#
-#cons.f <- function(nu, tau){
-#
-#    sqrt((nu - tau - 1) / (nu - tau))
-#
-#}
-
-
 ####################################################################################################################################################
     #get l using the multivariate t cdf
 ####################################################################################################################################################
 
 PH1.get.cc.mvt <- function(
-                 k
-                 ,nu
-                 ,FAP = 0.1
-                 #,Phase1 = TRUE
-                 ,off.diag = -1/(k - 1)
-                 #,alternative = '2-sided'
-                 ,c4.option = TRUE
-                 ,maxiter = 10000
+                    n.dim
+                    ,n.batch
+                    ,n.samplesize
+                    ,nu
+                    ,sigma
+                    ,corr.par
+                    #,alternative = '2-sided'
+                    ,var.option = 'c4'
+                    ,maxiter = 10000
+) {
 
-){
+}{
 
     alternative = '2-sided'                                                   #turn off the alternative
-                                                                              #The purpose of this function is
-    #MCMC <- FALSE                                                             #to obtain l and k based on
-                                                                              #multivariate t.
-                                                                              #MCMC part is not available now.
-
-    #if (off.diag == NULL) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
-
-    corr.P <- PH1.corr.f(k = k, off.diag = off.diag)                              #get correlation matrix with equal correlations
 
     pu <- 1 - FAP
 
-    corr.par <- corr.par.f(nu, c4.option)
+    #corr.par <- ub.f(n.samplesize, nu, var.option)
 
-    #if (MCMC == TRUE) {
-        #MVN.Q.Gibbs.Sampling(
-        #    pu,
-        #    MCMC.maxsim,
-        #    corr.P,
-        #    tails = alternative,
-        #    burn = MCMC.burn,
-        #    search.interval = MCMC.search.interval
-        #)
+    L <- ifelse(
+            alternative == '2-sided',
+            qmvt(pu, df = nu, sigma = sigma, tail = 'both.tails', maxiter = maxiter)$quantile,
+            qmvt(pu, df = nu, sigma = sigma, maxiter = maxiter)$quantile
+    )
 
-
-
-    #} else {
-
-        L <- ifelse(
-                alternative == '2-sided',
-                qmvt(pu, df = nu, sigma = corr.P, tail = 'both.tails', maxiter = maxiter)$quantile,
-                qmvt(pu, df = nu, sigma = corr.P, maxiter = maxiter)$quantile
-            )
-                                                      #get L by multivariate T
-
-
-
-    #}
-
-
-
-    c.i <- L * corr.par * sqrt((k - 1) / k)             #get K
+    c.i <- L * corr.par * sqrt((n.batch - 1) / n.batch)             #get c
 
     list(l = L, c.i = c.i)
 
@@ -133,65 +175,38 @@ PH1.get.cc.mvt <- function(
     #get L by multivariate Normal
 ####################################################################################################################################################
 
-#Old code is using chi distribution from package adehabitatLT
-#
-#PH1.joint.pdf.mvn.chisq <- function(Y, K, m, nu, sigma, alternative = '2-sided') {
-#
-#    s <- length(Y)
-#
-#    L <- K / sqrt((m - 1) / m * nu) * Y / c4.f(nu)
-#
-#    dpp <- lapply(
-#            1:s,
-#            function(i){
-#
-#                LL <- rep(L[i], m)
-#
-#                ifelse(
-#                    alternative == '2-sided',
-#                    pmvnorm(lower = -LL, upper = LL, sigma = sigma),
-#                    pmvnorm(lower = rep(-Inf, m), upper = LL, sigma = sigma)
-#                )
-#
-#            }
-#
-#    )
-#
-#    dpp <- unlist(dpp)
-#
-#    dpp * dchi(Y, df = nu)
-#
-#
-#}
-
 PH1.joint.pdf.mvn.chisq <- function(
                                 Y
                                 ,c.i
-                                ,k
+                                ,n.dim
+                                ,n.batch
+                                ,n.samplesize
                                 ,nu
+                                ,C
                                 ,sigma
+                                ,corr.par
                                 #,alternative = '2-sided'
-                                ,c4.option = TRUE)
+                                ,var.option = 'c4')
 {
 
     alternative = '2-sided'                                                   #turn off the alternative
 
     s <- length(Y)
 
-    corr.par <- corr.par.f(nu, c4.option)
+    #corr.par <- ub.f(n.samplesize, nu, var.option)
 
-    L <- c.i / sqrt((k - 1) / k * nu) * sqrt(Y) / corr.par
+    L <- c.i / sqrt((n.batch - 1) / n.batch * nu) * sqrt(Y) / corr.par * C
 
     dpp <- lapply(
             1:s,
             function(i){
 
-                LL <- rep(L[i], k)
+                LL <- rep(L[i], n.dim)
 
                 ifelse(
                     alternative == '2-sided',
                     pmvnorm(lower = -LL, upper = LL, sigma = sigma),
-                    pmvnorm(lower = rep(-Inf, k), upper = LL, sigma = sigma)
+                    pmvnorm(lower = rep(-Inf, n.dim), upper = LL, sigma = sigma)
                 )
 
             }
@@ -207,51 +222,37 @@ PH1.joint.pdf.mvn.chisq <- function(
 
 PH1.root.mvn.F <- function(
                     c.i
-                    , k
+                    , n.dim
+                    , n.batch
+                    , n.samplesize
                     , nu
+                    , C
                     , sigma
+                    , corr.par
                     , pu
                     #, alternative = '2-sided'
-                    , c4.option = TRUE
+                    , var.option = 'c4'
                     , subdivisions = 2000
                     , rel.tol = 1e-2)
 {
     alternative = '2-sided'                                                   #turn off the alternative
-                                                            #The purpose of this function is
-    #s <- length(Y)                                          #to obtain appropriate L
-    #                                                        #by multivariate normal
-    #L <- K / sqrt((m - 1) / m * nu) * Y * c4.f(nu)          #
-    #
-    #pp <- lapply(
-    #        1:s,
-    #        function(i){
-    #
-    #            LL <- rep(L[i], m)
-    #            ifelse(
-    #                alternative == '2-sided',
-    #                pmvnorm(lower = -LL, upper = LL, sigma = sigma),
-    #                pmvnorm(lower = rep(-Inf, m), upper = LL, sigma = sigma)
-    #            )
-    #
-    #        }
-    #
-    #)
-    #
-    #pp <- mean(unlist(pp))
-
-
+                                                          
     pp <- integrate(
-            PH1.joint.pdf.mvn.chisq,
-            lower = 0,
-            upper = Inf,
-            c.i = c.i,
-            k = k,
-            nu = nu,
-            sigma = sigma,
-            #alternative = alternative,
-            c4.option = c4.option,
-            subdivisions = subdivisions,
-            rel.tol = rel.tol
+            PH1.joint.pdf.mvn.chisq
+            ,lower = 0
+            ,upper = Inf
+            ,c.i = c.i
+            ,n.dim = n.dim
+            ,n.batch = n.batch
+            ,n.samplesize = n.samplesize
+            ,nu = nu
+            ,C = C
+            ,sigma = sigma
+            ,corr.par = corr.par
+            #,alternative = '2-sided'
+            ,var.option = 'c4'
+            ,subdivisions = subdivisions
+            ,rel.tol = rel.tol
         )$value
 
     pu - pp
@@ -261,13 +262,16 @@ PH1.root.mvn.F <- function(
 
 
 PH1.get.cc.mvn <- function(
-                 k
+                 n.dim
+                 ,n.batch
+                 ,n.samplesize
                  ,nu
+                 ,C = 1
                  ,FAP = 0.1
-                 #,Phase1 = TRUE
-                 ,off.diag = -1/(k - 1)
+                 ,sigma = PH1.corr.f(k = n.dim, off.diag = off.diag)
+                 ,corr.par = ub.f(n.samplesize, nu, var.option)
                  #,alternative = '2-sided'
-                 ,c4.option = TRUE
+                 ,var.option = 'c4'
                  ,interval = c(1, 7)
                  ,maxiter = 10000
                  ,subdivisions = 2000
@@ -275,55 +279,30 @@ PH1.get.cc.mvn <- function(
 
 ){
     alternative = '2-sided'                                                   #turn off the alternative
-                                                         #The purpose of this function is
-                                                            #to obtain L and K based on
-    #MCMC <- FALSE                                           #multivariate normal.
-                                                            #MCMC part is not available now.
-    #if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
 
-    corr.par <- corr.par.f(nu, c4.option)
-
-    corr.P <- PH1.corr.f(k = k, off.diag = off.diag)
+    #corr.par <- ub.f(n.samplesize, nu, var.option)
 
     pu <- 1 - FAP
 
-    #Y <- sqrt(rchisq(maxsim, df = nu))
-
-    #if (MCMC == TRUE) {
-
-        #MVN.Q.Gibbs.Sampling(
-        #    pu,
-        #    MCMC.maxsim,
-        #    corr.P,
-        #    tails = alternative,
-        #    burn = MCMC.burn,
-        #    search.interval = MCMC.search.interval
-        #)
-
-
-
-    #} else {
-
-
-        c.i <- uniroot(
-                PH1.root.mvn.F,
-                interval = interval,
-                k = k,
-                nu = nu,
-                #Y = Y,
-                sigma = corr.P,
-                pu = pu,
-                #alternative = alternative,
-                c4.option = c4.option,
-                subdivisions = subdivisions,
-                tol = tol,
-                rel.tol = tol,
-                maxiter = maxiter
-        )$root
-
-    #}
-
-    L <- c.i / corr.par * sqrt(k / (k - 1))
+    c.i <- uniroot(
+            PH1.root.mvn.F
+            ,n.dim = n.dim
+            ,n.batch = n.batch
+            ,n.samplesize = n.samplesize
+            ,nu = nu
+            ,C = C
+            ,sigma = sigma
+            ,corr.par = corr.par
+            ,pu = pu
+            #, alternative = '2-sided'
+            ,var.option = var.option
+            ,subdivisions = subdivisions
+            ,tol = tol
+            ,rel.tol = tol
+            ,maxiter = maxiter
+    )$root
+    
+    L <- c.i / corr.par * sqrt(n.batch / (n.batch - 1)) * C
 
     list(l = L, c.i = c.i)
 
@@ -335,14 +314,18 @@ PH1.get.cc.mvn <- function(
 ####################################################################################################################################################
 
 PH1.get.cc <- function(
-            k
+            n.dim
+            ,n.batch
+            ,n.samplesize
             ,nu
             ,FAP = 0.1
-            ,off.diag = -1/(k - 1)
+            ,corr.P = PH1.corr.f(k = n.dim, off.diag = off.diag)
             #,alternative = '2-sided'
-            ,c4.option = TRUE
-            ,maxiter = 10000
+            ,var.option = 'c4'
             ,method = 'direct'
+            ,var.est = 'MS'
+            ,lower.MR = 1e-6
+            ,maxiter = 10000            
             ,indirect.interval = c(1, 7)
             ,indirect.subdivisions = 100L
             ,indirect.tol = .Machine$double.eps^0.25
@@ -350,88 +333,104 @@ PH1.get.cc <- function(
 
 ){
     alternative = '2-sided'                                                   #turn off the alternative
-                                                  #The purpose of this function is to obtain L and K
-                                                    #by multivariate T or multivariate normal.
-                                                    #Multivariate normal is so time-consuming
-                                                    #that I do not recommend.
-
-    #Phase1 <- TRUE                                  #need to delete if need to use Phase 2
-
-	#method <- 'direct'								#need to delete if need to use indirect
-
-    #if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
 
     is.int <- ifelse(nu == round(nu), 1, 0)
 
-	#if (is.int == 0) cat('Nu is not an integrer. Please check.', '\n') #need to delete if need to use indirect
-
-    #if (method == 'direct' & is.int == 1) {                       #using multivariate T to obtain L and K
-
-	if (is.int == 1 && method == 'direct') {
-                                               #need to delete if need to use indirect
-        PH1.get.cc.mvt(
-            k = k
-            ,nu = nu
-            ,FAP = FAP
-            #,Phase1 = Phase1
-            ,off.diag = off.diag
-            #,alternative = alternative
-            ,c4.option = c4.option
-            ,maxiter = maxiter
-        )
-
-    } else if (is.int == 1 && method == 'indirect'){
-
-        cat('Nu is an integer. Using the indirect method may slow the computation process down.', '\n')
-
-        PH1.get.cc.mvn(
-            k = k
-            ,nu = nu
-            ,FAP = FAP
-            #,Phase1 = Phase1
-            ,off.diag = off.diag
-            #,alternative = alternative
-            ,c4.option = c4.option
-            ,interval = indirect.interval
-            #,maxsim = indirect.maxsim
-            ,subdivisions = indirect.subdivisions
-            ,maxiter = maxiter
-            ,tol = indirect.tol
-        )
-
+    
+    corr.par <- ub.f(n.samplesize, nu, var.option)
+    
+    C <- 1
+    
+    if (var.est == 'MS') {
+    
+        pars.MR <- pars.root.finding(n.batch, n.samplesize, lower = lower.MR)
+        
+        nu <- pars.MR[1]
+        C <- pars.MR[2]
+        
     }
-
-    else if (is.int == 0 && method == 'direct'){   #using multivariate normal to obtain L and K
-
-
-        stop('Nu is not an integer. Please use the indirect method instead.')
-
-
-    } else if (is.int == 0 && method == 'indirect') {
-
+    
+    if (method == 'direct') {
+    
+        if (is.int == 1) {
+            PH1.get.cc.mvt(
+            
+                 n.dim = n.dim
+                ,n.batch = n.batch
+                ,n.samplesize = n.samplesize
+                ,nu = nu
+                ,sigma = sigma
+                ,corr.par = corr.P
+                #,alternative = '2-sided'
+                ,var.option = var.option
+                ,maxiter = maxiter
+            
+            )
+        } else if (is.int == 0) {
+        
+             stop('Nu is not an integer. Please use the indirect method instead.')
+        
+        }
+    
+    } else if (method == 'indirect') {
+    
+        if (is.int == 1) {
+        
+            cat('Nu is an integer. Using the indirect method may slow the computation process down.', '\n')
+        
+        }
+        
         PH1.get.cc.mvn(
-            k = k
+        
+             n.dim = n.dim
+            ,n.batch = n.batch
+            ,n.samplesize = n.samplesize
             ,nu = nu
+            ,C = C
             ,FAP = FAP
-            #,Phase1 = Phase1
-            ,off.diag = off.diag
-            #,alternative = alternative
-            ,c4.option = c4.option
+            ,sigma = sigma
+            ,corr.par = corr.par
+            #,alternative = '2-sided'
+            ,var.option = 'c4'
             ,interval = indirect.interval
-            #,maxsim = indirect.maxsim
-            ,subdivisions = indirect.subdivisions
             ,maxiter = maxiter
+            ,subdivisions = indirect.subdivisions
             ,tol = indirect.tol
-        )
 
+        )
+    
     } else {
-
+    
         stop('Unknown method. Please select the direct method or the indirect method.')
-
+    
     }
-
+    
 
 }
+
+
+
+####################################################################################################################################################
+    #above need to test, below need to revise
+####################################################################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ####################################################################################################################################################
     #reverse the process
@@ -443,7 +442,7 @@ PH1.get.cc <- function(
 #            ,nu
 #            ,off.diag = -1/(k - 1)
 #            ,alternative = '2-sided'
-#            ,c4.option = TRUE
+#            ,var.option = TRUE
 #            ,maxiter = 10000
 #            ,indirect.subdivisions = 100L
 #            ,indirect.tol = .Machine$double.eps^0.25
@@ -460,7 +459,7 @@ PH1.get.cc <- function(
 #
 #    corr.P <- PH1.corr.f(k = k, off.diag = off.diag)
 #
-#    corr.par <- corr.par.f(nu, c4.option)
+#    corr.par <- corr.par.f(nu, var.option)
 #
 #    L <- c.i / corr.par * sqrt(k / (k - 1))
 #
@@ -493,7 +492,7 @@ PH1XBAR <- function(
 			,off.diag = -1/(k - 1)
 			#,alternative = '2-sided'
             ,model = 'ANOVA-based'
-            ,c4.option = TRUE
+            ,var.option = TRUE
 			,plot.option = TRUE
 			,maxiter = 10000
 			,method = 'direct'
@@ -516,7 +515,7 @@ PH1XBAR <- function(
 
         nu <- k - 1
 
-        corr.par <- corr.par.f(nu, c4.option)
+        corr.par <- ub.f(n, nu, var.option)
 
         sigma.v <- sqrt(var(X.bar)) / corr.par
 
@@ -524,7 +523,7 @@ PH1XBAR <- function(
 
         nu <- k * (n - 1)
 
-        corr.par <- corr.par.f(nu, c4.option)
+        corr.par <- ub.f(n, nu, var.option)
 
         sigma.v <- sqrt(sum(apply(X, 1, var)) / k) / corr.par / sqrt(n)
 
@@ -541,7 +540,7 @@ PH1XBAR <- function(
                 ,FAP = FAP
                 ,off.diag = off.diag
                 #,alternative = alternative
-                ,c4.option = c4.option
+                ,var.option = var.option
                 ,maxiter = maxiter
                 ,method = method
                 ,indirect.interval = indirect.interval
@@ -620,9 +619,9 @@ PH1XBAR.data <- function(){
     # Phase II Xbar chart. Please see Yao and Chakraborti (2018)
 ####################################################################################################################################################
 
-PH2.inner.normal <- function(Z, Y, c.ii, k, nu = k - 1, c4.option = TRUE){
+PH2.inner.normal <- function(Z, Y, c.ii, k, n, nu = k - 1, var.option = 'c4'){
 
-    corr.par <- corr.par.f(nu, c4.option)
+    corr.par <- ub.f(n, nu, var.option)
 
     qn <- Z / sqrt(k) + c.ii / corr.par / sqrt(nu) * sqrt(Y)
 
@@ -630,69 +629,50 @@ PH2.inner.normal <- function(Z, Y, c.ii, k, nu = k - 1, c4.option = TRUE){
 
 }
 
-PH2.CFAR.intgrand <- function(u, v, c.ii, k, nu = k - 1, c4.option = TRUE){
+PH2.CFAR.intgrand <- function(u, v, c.ii, k, nu = k - 1, var.option = TRUE){
 
     Z <- qnorm(u)
     Y <- qchisq(v, nu)
 
-    p1 <- PH2.inner.normal(Z, Y, c.ii, k, nu, c4.option)
-    p2 <- PH2.inner.normal(Z, Y, -c.ii, k, nu, c4.option)
+    p1 <- PH2.inner.normal(Z, Y, c.ii, k, nu, var.option)
+    p2 <- PH2.inner.normal(Z, Y, -c.ii, k, nu, var.option)
 
     1 - p1 + p2
 }
 
-PH2.CARL.intgrand <- function(u, v, c.ii, k, nu = k - 1, c4.option = TRUE) 1 / PH2.CFAR.intgrand(u, v, c.ii, k, nu, c4.option)
+PH2.CARL.intgrand <- function(u, v, c.ii, k, nu = k - 1, var.option = TRUE) 1 / PH2.CFAR.intgrand(u, v, c.ii, k, nu, var.option)
 
 
 ####################################################################################################################################################
 
 
-PH2.get.cc.uc <- function(ARL0, k, nu = k - 1, c4.option = TRUE, interval = c(1, 10), u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
+PH2.get.cc.uc <- function(ARL0, k, nu = k - 1, var.option = TRUE, interval = c(1, 10), u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
 
-        PH2.root.finding.uc <- function(c.ii, k, nu = k - 1, c4.option = TRUE, ARL0, u, v) {
+        PH2.root.finding.uc <- function(c.ii, k, nu = k - 1, var.option = TRUE, ARL0, u, v) {
 
-            ARL0 - mean(PH2.CARL.intgrand(u, v, c.ii, k, nu, c4.option))
+            ARL0 - mean(PH2.CARL.intgrand(u, v, c.ii, k, nu, var.option))
 
     }
 
     k <- k
 
-    rt <- uniroot(PH2.root.finding.uc, interval = interval, k = k, nu = nu, c4.option = c4.option, ARL0 = ARL0, u = u, v = v, tol = tol)$root
+    rt <- uniroot(PH2.root.finding.uc, interval = interval, k = k, nu = nu, var.option = var.option, ARL0 = ARL0, u = u, v = v, tol = tol)$root
 
     rt
 
 
 }
 
-PH2.get.cc.uc.appr <- function(ARL0, k, nu = k - 1, c4.option = TRUE){
-	
-	if (c4.option == TRUE) {
-		c4 <- c4.f(nu)
-	} else {
-		c4 <- 1	
-	}
-	
-	c <- -qnorm(1 / ARL0 / 2)
-
-	nu <- k - 1
-	
-	A <- c^2 * (c4 ^ (-2) - 1)
-	
-	c - ( (dnorm(c) / 2 / (1 - pnorm(c)) - c / 2) * (A + 1/k) + dnorm(c) / 2 / (1 - pnorm(c)) * (A - 1/k) )
-
-
-}
-
 ####################################################################################################################################################
 
 
-PH2.root.finding.EPC <- function(p, k, nu = k - 1, c.ii, ARLb, c4.option = TRUE, u = runif(100000), v = runif(100000)){
+PH2.root.finding.EPC <- function(p, k, nu = k - 1, c.ii, ARLb, var.option = TRUE, u = runif(100000), v = runif(100000)){
 
-    1 - p - mean(PH2.CARL.intgrand(u, v, c.ii, k, nu, c4.option) >= ARLb)
+    1 - p - mean(PH2.CARL.intgrand(u, v, c.ii, k, nu, var.option) >= ARLb)
 
 }
 
-PH2.get.cc.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, c4.option = TRUE, interval = c(1, 10), u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
+PH2.get.cc.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, var.option = TRUE, interval = c(1, 10), u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
 
     ARLb <- (1 - eps) * ARL0
 
@@ -703,7 +683,7 @@ PH2.get.cc.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, c4.option = 
             k = k,
             nu = nu,
             ARLb = ARLb,
-            c4.option = c4.option,
+            var.option = var.option,
             u = u,
             v = v,
             tol = tol
@@ -718,10 +698,10 @@ PH2.get.cc.EPC <- function(p, k, nu = k - 1, eps = 0.1, ARL0 = 370, c4.option = 
 #v <- runif(rnum)
 
 #debug(PH2.get.c.ii.EPC)
-#PH2.get.c.ii.EPC(p = 0.05, k = 100, eps = 0.1, ARL0 = 500, c4.option = TRUE, interval = c(1, 5), u = u, v = v)
+#PH2.get.c.ii.EPC(p = 0.05, k = 100, eps = 0.1, ARL0 = 500, var.option = TRUE, interval = c(1, 5), u = u, v = v)
 
 
-PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, c4.option = TRUE, interval = c(1, 1000), u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
+PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, var.option = TRUE, interval = c(1, 1000), u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
 
     rt <- uniroot(
             PH2.root.finding.EPC,
@@ -730,7 +710,7 @@ PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, c4.option = TR
             k = k,
             nu = nu,
             c.ii = c.ii,
-            c4.option = c4.option,
+            var.option = var.option,
             u = u,
             v = v,
             tol = tol
@@ -744,29 +724,29 @@ PH2.get.ARLb.EPC <- function(p, k, nu = k - 1, c.ii, ARL0 = NULL, c4.option = TR
 
 
 }
-#PH2.get.ARLb.EPC(p = 0.1, k = 100, c.ii = 3, c4.option = TRUE, u = u, v = v)
-#PH2.get.ARLb.EPC(p = 0.1, k = 100, c.ii = 3, ARL0 = 370, c4.option = TRUE, u = u, v = v)
+#PH2.get.ARLb.EPC(p = 0.1, k = 100, c.ii = 3, var.option = TRUE, u = u, v = v)
+#PH2.get.ARLb.EPC(p = 0.1, k = 100, c.ii = 3, ARL0 = 370, var.option = TRUE, u = u, v = v)
 
-PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, c4.option = TRUE, interval = c(1000, 3000), model = 'ANOVA-based', n = 10, u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
+PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, var.option = TRUE, interval = c(1000, 3000), model = 'ANOVA-based', n = 10, u = runif(100000), v = runif(100000), tol = .Machine$double.eps^0.25){
 
     if (model == 'ANOVA-based') {
 
-        PH2.root.finding.k.EPC <- function(p, k, c.ii, ARLb, c4.option = TRUE, n = 10, u, v){
+        PH2.root.finding.k.EPC <- function(p, k, c.ii, ARLb, var.option = TRUE, n = 10, u, v){
 
             nu <- k - 1
 
-            PH2.root.finding.EPC(p, k, nu, c.ii, ARLb, c4.option, u, v)
+            PH2.root.finding.EPC(p, k, nu, c.ii, ARLb, var.option, u, v)
 
         }
 
 
     } else if (model == 'basic') {
 
-        PH2.root.finding.k.EPC <- function(p, k, c.ii, ARLb, c4.option = TRUE, n = 10, u, v){
+        PH2.root.finding.k.EPC <- function(p, k, c.ii, ARLb, var.option = TRUE, n = 10, u, v){
 
             nu <- (n - 1) * k
 
-            PH2.root.finding.EPC(p, k, nu, c.ii, ARLb, c4.option, u, v)
+            PH2.root.finding.EPC(p, k, nu, c.ii, ARLb, var.option, u, v)
 
         }
 
@@ -784,7 +764,7 @@ PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, c4.option = TRUE, inte
             p = p,
             c.ii = c.ii,
             ARLb = ARLb,
-            c4.option = c4.option,
+            var.option = var.option,
             n = n,
             u = u,
             v = v,
@@ -798,16 +778,12 @@ PH2.get.k.EPC <- function(p, c.ii, eps = 0.1, ARL0 = 370, c4.option = TRUE, inte
 ####################################################################################################################################################
 
 
-############################################################################################################################################
-	#This main function need to be capable to the approximations for both of UC and EPC
-############################################################################################################################################
-
 PH2XBAR <- function(
             X
             ,PH1.info = list(X = NULL, mu = NULL, sigma = NULL, k = NULL, n = NULL, model = "ANOVA-based")
             ,c.ii.info = list(c.ii = NULL, method = 'UC', ARL0 = 370, p = 0.05, eps = 0.1, interval.c.ii.UC = c(1, 3.2), interval.c.ii.EPC = c(1, 10), UC.tol = .Machine$double.eps^0.25, EPC.tol = .Machine$double.eps^0.25)
             #,alternative = '2-sided'
-            ,c4.option = TRUE
+            ,var.option = TRUE
             ,plot.option = TRUE
             ,maxsim = 100000
 ) {
@@ -846,7 +822,7 @@ PH2XBAR <- function(
 
         }
 
-        corr.par <- corr.par.f(nu, c4.option)
+        corr.par <- ub.f(n, nu, var.option)
 
         X.bar.bar <- PH1.info$mu
         sigma.v <- PH1.info$sigma / corr.par
@@ -902,7 +878,7 @@ PH2XBAR <- function(
                     ARL0 = c.ii.info$ARL0
                     , k = k
                     , nu = nu
-                    , c4.option = c4.option
+                    , var.option = var.option
                     , interval = c.ii.info$interval.c.ii.UC
                     , u = u
                     , v = v
@@ -921,7 +897,7 @@ PH2XBAR <- function(
                     , nu = nu
                     , eps = c.ii.info$eps
                     , ARL0 = c.ii.info$ARL0
-                    , c4.option = c4.option
+                    , var.option = var.option
                     , interval = c.ii.info$interval.c.ii.EPC
                     , u = u
                     , v = v
@@ -1030,7 +1006,7 @@ PH2XBAR.data <- function(){
 
 }
 
-#PH2.get.k.EPC(p = 0.05, c.ii = 3, eps = 0.2, ARL0 = 370, c4.option = TRUE, interval = c(100, 400), type = 'ANOVA-based', subgroup.size = 10, u = u, v = v)
+#PH2.get.k.EPC(p = 0.05, c.ii = 3, eps = 0.2, ARL0 = 370, var.option = TRUE, interval = c(100, 400), type = 'ANOVA-based', subgroup.size = 10, u = u, v = v)
 
 
 #
