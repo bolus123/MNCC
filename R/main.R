@@ -20,95 +20,125 @@ require(mvtnorm)
 #source('https://raw.githubusercontent.com/bolus123/Statistical-Process-Control/master/MKLswitch.R')
 
 ####################################################################################################################################################
+
+W.f <- function(w, n) { # n is sample size
+  
+  integrand <- function(x, w) {
+    
+    (pnorm(w + x) - pnorm(x)) ^ (n - 2) * dnorm(w + x) * dnorm(x)
+    
+  }
+  
+  n * (n - 1) * integrate(integrand, -Inf, Inf, w = w)$value
+  
+}
+
+# moment of W
+
+W.moment <- function(a, n) { # a is order of moment and n is sample size
+  
+  integrand <- function(w, a, n) {
+    
+    w ^ a * W.f(w, n)
+    
+  }
+  
+  integrand <- Vectorize(integrand, 'w')
+  
+  integrate(integrand, 0, Inf, a = a, n = n)$value
+  
+}
+
+
+pars.root.finding <- function(k, n, lower = 1e-6) {
+  
+  root.finding <- function(nu, k, n, ratio) {
+    
+    ratio / k - nu / 2 / pi * beta(nu / 2, 1 / 2) ^ 2 + 1
+    
+  }
+  
+  M <- W.moment(1, n)
+  M2 <- W.moment(2, n)
+  
+  V <- M2 - M ^ 2
+  
+  ratio <- V / M ^ 2
+  
+  cat('dn2/Vn = ', 1 / ratio, '\n')
+  
+  nu <- uniroot(root.finding, c(lower, k * n), k = k, n = n, ratio = ratio)$root
+  
+  lambda <- sqrt(V / k + M ^ 2)
+  
+  c(nu, lambda)
+  
+}
+
+pars.root.finding <- Vectorize(pars.root.finding, c('k', 'n'))
+
+
+####################################################################################################################################################
     #parts of getting the charting constant l
 ####################################################################################################################################################
 
+d2.f <- function(n) {
+
+    integrand <- function(x, n) {
+    
+        1 - (1 - pnorm(x)) ^ n - pnorm(x) ^ n
+    
+    }
+    
+    integrate(integrand, -Inf, Inf, n = n)$value
+
+}
+
 c4.f <- function(nu) sqrt(2 / nu) * 1 / beta(nu / 2, 1 / 2) * sqrt(pi)             #c4.function
 
-corr.par.f <- function(nu, c4.option) {
-        if (c4.option == TRUE) {
+corr.par.f <- function(nu, ub.option) {
+        if (ub.option == 'c4') {
             corr.par <- c4.f(nu)
+        } else if (ub.option == 'd2') {
+            corr.par <- d2.f(2)
         } else {
             corr.par <- 1
         }
 }
 
-PH1.corr.f <- function(k, off.diag = - 1 / (k - 1)){
+PH1.corr.f <- function(m, off.diag = - 1 / (m - 1)){
                                                                                    #correlation matrix
-    crr <- diag(k)
+    crr <- diag(m)
     crr[which(crr == 0)] <- off.diag
 
     crr
 
 }
 
-#first.der.c4.f <- function(nu){
-#
-#    beta.part <- (beta(nu / 2, 1 / 2)) ^ (-1)
-#
-#    digamma1 <- digamma(nu / 2)
-#    digamma2 <- digamma(nu / 2 + 1 / 2)
-#
-#    - sqrt(2 * pi) / 2 * beta.part * ((digamma1 - digamma2) / sqrt(nu) + nu ^ (- 3 /2))
-#
-#}
-#
-#first.der.cons.f <- function(nu, tau){
-#
-#    1 / 2 * (1 - 1 / (nu - tau)) ^ (- 1 / 2) * (nu - tau) ^ - 2
-#
-#}
-#
-#cons.f <- function(nu, tau){
-#
-#    sqrt((nu - tau - 1) / (nu - tau))
-#
-#}
-
-
 ####################################################################################################################################################
     #get l using the multivariate t cdf
 ####################################################################################################################################################
 
 PH1.get.cc.mvt <- function(
-                 k
+                 m
                  ,nu
                  ,FAP = 0.1
                  #,Phase1 = TRUE
-                 ,off.diag = -1/(k - 1)
+                 ,off.diag = -1/(m - 1)
                  #,alternative = '2-sided'
-                 ,c4.option = TRUE
+                 ,ub.cons = 1
                  ,maxiter = 10000
 
 ){
 
     alternative = '2-sided'                                                   #turn off the alternative
-                                                                              #The purpose of this function is
-    #MCMC <- FALSE                                                             #to obtain l and k based on
-                                                                              #multivariate t.
-                                                                              #MCMC part is not available now.
 
-    #if (off.diag == NULL) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
-
-    corr.P <- PH1.corr.f(k = k, off.diag = off.diag)                              #get correlation matrix with equal correlations
+    corr.P <- PH1.corr.f(m = m, off.diag = off.diag)                              #get correlation matrix with equal correlations
 
     pu <- 1 - FAP
 
-    corr.par <- corr.par.f(nu, c4.option)
+    corr.par <- ub.cons
 
-    #if (MCMC == TRUE) {
-        #MVN.Q.Gibbs.Sampling(
-        #    pu,
-        #    MCMC.maxsim,
-        #    corr.P,
-        #    tails = alternative,
-        #    burn = MCMC.burn,
-        #    search.interval = MCMC.search.interval
-        #)
-
-
-
-    #} else {
 
         L <- ifelse(
                 alternative == '2-sided',
@@ -119,11 +149,7 @@ PH1.get.cc.mvt <- function(
 
 
 
-    #}
-
-
-
-    c.i <- L * corr.par * sqrt((k - 1) / k)             #get K
+    c.i <- L * corr.par * sqrt((m - 1) / m)             #get c.i
 
     list(l = L, c.i = c.i)
 
@@ -133,65 +159,35 @@ PH1.get.cc.mvt <- function(
     #get L by multivariate Normal
 ####################################################################################################################################################
 
-#Old code is using chi distribution from package adehabitatLT
-#
-#PH1.joint.pdf.mvn.chisq <- function(Y, K, m, nu, sigma, alternative = '2-sided') {
-#
-#    s <- length(Y)
-#
-#    L <- K / sqrt((m - 1) / m * nu) * Y / c4.f(nu)
-#
-#    dpp <- lapply(
-#            1:s,
-#            function(i){
-#
-#                LL <- rep(L[i], m)
-#
-#                ifelse(
-#                    alternative == '2-sided',
-#                    pmvnorm(lower = -LL, upper = LL, sigma = sigma),
-#                    pmvnorm(lower = rep(-Inf, m), upper = LL, sigma = sigma)
-#                )
-#
-#            }
-#
-#    )
-#
-#    dpp <- unlist(dpp)
-#
-#    dpp * dchi(Y, df = nu)
-#
-#
-#}
-
 PH1.joint.pdf.mvn.chisq <- function(
                                 Y
                                 ,c.i
-                                ,k
+                                ,m
                                 ,nu
                                 ,sigma
+                                ,lambda = 1
                                 #,alternative = '2-sided'
-                                ,c4.option = TRUE)
+                                ,ub.cons = 1)
 {
 
     alternative = '2-sided'                                                   #turn off the alternative
 
     s <- length(Y)
 
-    corr.par <- corr.par.f(nu, c4.option)
+    corr.par <- ub.cons
 
-    L <- c.i / sqrt((k - 1) / k * nu) * sqrt(Y) / corr.par
+    L <- c.i / sqrt((m - 1) / m * nu) * sqrt(Y) / corr.par * lambda
 
     dpp <- lapply(
             1:s,
             function(i){
 
-                LL <- rep(L[i], k)
+                LL <- rep(L[i], m)
 
                 ifelse(
                     alternative == '2-sided',
                     pmvnorm(lower = -LL, upper = LL, sigma = sigma),
-                    pmvnorm(lower = rep(-Inf, k), upper = LL, sigma = sigma)
+                    pmvnorm(lower = rep(-Inf, m), upper = LL, sigma = sigma)
                 )
 
             }
@@ -207,49 +203,29 @@ PH1.joint.pdf.mvn.chisq <- function(
 
 PH1.root.mvn.F <- function(
                     c.i
-                    , k
+                    , m
                     , nu
                     , sigma
+                    , lambda = 1
                     , pu
                     #, alternative = '2-sided'
-                    , c4.option = TRUE
+                    , ub.cons = 1
                     , subdivisions = 2000
                     , rel.tol = 1e-2)
 {
     alternative = '2-sided'                                                   #turn off the alternative
-                                                            #The purpose of this function is
-    #s <- length(Y)                                          #to obtain appropriate L
-    #                                                        #by multivariate normal
-    #L <- K / sqrt((m - 1) / m * nu) * Y * c4.f(nu)          #
-    #
-    #pp <- lapply(
-    #        1:s,
-    #        function(i){
-    #
-    #            LL <- rep(L[i], m)
-    #            ifelse(
-    #                alternative == '2-sided',
-    #                pmvnorm(lower = -LL, upper = LL, sigma = sigma),
-    #                pmvnorm(lower = rep(-Inf, m), upper = LL, sigma = sigma)
-    #            )
-    #
-    #        }
-    #
-    #)
-    #
-    #pp <- mean(unlist(pp))
-
 
     pp <- integrate(
             PH1.joint.pdf.mvn.chisq,
             lower = 0,
             upper = Inf,
             c.i = c.i,
-            k = k,
+            m = m,
             nu = nu,
             sigma = sigma,
+            lambda = lambda,
             #alternative = alternative,
-            c4.option = c4.option,
+            ub.cons = ub.cons,
             subdivisions = subdivisions,
             rel.tol = rel.tol
         )$value
@@ -261,13 +237,15 @@ PH1.root.mvn.F <- function(
 
 
 PH1.get.cc.mvn <- function(
-                 k
+                 m
                  ,nu
                  ,FAP = 0.1
                  #,Phase1 = TRUE
-                 ,off.diag = -1/(k - 1)
+                 ,off.diag = -1/(m - 1)
                  #,alternative = '2-sided'
-                 ,c4.option = TRUE
+                 ,var.est = 'MSE'
+                 ,ub.option = TRUE
+                 ,ub.lower = 1e-6
                  ,interval = c(1, 7)
                  ,maxiter = 10000
                  ,subdivisions = 2000
@@ -281,49 +259,59 @@ PH1.get.cc.mvn <- function(
                                                             #MCMC part is not available now.
     #if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
 
-    corr.par <- corr.par.f(nu, c4.option)
+    ub.cons <- 1
+    
+    if (var.est == 'MSE') {
+    
+        if (ub.option == TRUE) {
+        
+            ub.cons <- corr.par.f(nu, 'c4')
+            
+        }
+    
+    } else if (var.est == 'MR') {
+    
+        if (ub.option == TRUE) {
+        
+            ub.cons <- corr.par.f(nu, 'd2')
+            
+            nu.lambda <- pars.root.finding(m - 1, 2, lower = ub.lower)
+            
+            nu <- nu.lambda[1]
+            lambda <- nu.lambda[2]
+        
+        }
+    
+    } else {
+    
+        stop('The variance estimation is unknown.')
+    
+    }
 
-    corr.P <- PH1.corr.f(k = k, off.diag = off.diag)
+    corr.P <- PH1.corr.f(m = m, off.diag = off.diag)
 
     pu <- 1 - FAP
 
-    #Y <- sqrt(rchisq(maxsim, df = nu))
+    c.i <- uniroot(
+            PH1.root.mvn.F,
+            interval = interval,
+            m = m,
+            nu = nu,
+            #Y = Y,
+            sigma = corr.P,
+            lambda = lambda,
+            pu = pu,
+            #alternative = alternative,
+            ub.cons = ub.cons,
+            subdivisions = subdivisions,
+            tol = tol,
+            rel.tol = tol,
+            maxiter = maxiter
+    )$root
+    
+    
 
-    #if (MCMC == TRUE) {
-
-        #MVN.Q.Gibbs.Sampling(
-        #    pu,
-        #    MCMC.maxsim,
-        #    corr.P,
-        #    tails = alternative,
-        #    burn = MCMC.burn,
-        #    search.interval = MCMC.search.interval
-        #)
-
-
-
-    #} else {
-
-
-        c.i <- uniroot(
-                PH1.root.mvn.F,
-                interval = interval,
-                k = k,
-                nu = nu,
-                #Y = Y,
-                sigma = corr.P,
-                pu = pu,
-                #alternative = alternative,
-                c4.option = c4.option,
-                subdivisions = subdivisions,
-                tol = tol,
-                rel.tol = tol,
-                maxiter = maxiter
-        )$root
-
-    #}
-
-    L <- c.i / corr.par * sqrt(k / (k - 1))
+    L <- c.i / corr.par * sqrt(m / (m - 1)) * lambda
 
     list(l = L, c.i = c.i)
 
@@ -335,14 +323,16 @@ PH1.get.cc.mvn <- function(
 ####################################################################################################################################################
 
 PH1.get.cc <- function(
-            k
-            ,nu
+            m
+            ,nu = = m - 1
             ,FAP = 0.1
-            ,off.diag = -1/(k - 1)
+            ,off.diag = -1/(m - 1)
             #,alternative = '2-sided'
-            ,c4.option = TRUE
+            ,ub.option = TRUE
             ,maxiter = 10000
             ,method = 'direct'
+            ,var.est = 'MSE'
+            ,ub.lower = 1e-6
             ,indirect.interval = c(1, 7)
             ,indirect.subdivisions = 100L
             ,indirect.tol = .Machine$double.eps^0.25
@@ -355,79 +345,66 @@ PH1.get.cc <- function(
                                                     #Multivariate normal is so time-consuming
                                                     #that I do not recommend.
 
-    #Phase1 <- TRUE                                  #need to delete if need to use Phase 2
-
-	#method <- 'direct'								#need to delete if need to use indirect
-
-    #if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
 
     is.int <- ifelse(nu == round(nu), 1, 0)
-
-	#if (is.int == 0) cat('Nu is not an integrer. Please check.', '\n') #need to delete if need to use indirect
-
-    #if (method == 'direct' & is.int == 1) {                       #using multivariate T to obtain L and K
-
-	if (is.int == 1 && method == 'direct') {
-                                               #need to delete if need to use indirect
-        PH1.get.cc.mvt(
-            k = k
-            ,nu = nu
-            ,FAP = FAP
-            #,Phase1 = Phase1
-            ,off.diag = off.diag
-            #,alternative = alternative
-            ,c4.option = c4.option
-            ,maxiter = maxiter
-        )
-
-    } else if (is.int == 1 && method == 'indirect'){
-
-        cat('Nu is an integer. Using the indirect method may slow the computation process down.', '\n')
-
+    
+    
+    if (method = 'direct') {
+    
+        if (var.est == 'MSE') {
+            if (is.int == 1) {
+            
+                PH1.get.cc.mvt(
+                    m = m
+                    ,nu = nu
+                    ,FAP = FAP
+                    #,Phase1 = Phase1
+                    ,off.diag = off.diag
+                    #,alternative = alternative
+                    ,ub.option = ub.option
+                    ,maxiter = maxiter
+                )
+                
+            } else if (is.int == 0) {
+                
+                stop('Nu is not an integer. Please use the indirect method instead.')
+                
+            }
+        } else {
+        
+            stop('The variance estimation must be MSE for the direct method. Please use the indirect method instead.')
+        
+        }
+    
+    } else if (method == 'indirect') {
+    
+        if (is.int == 1) {
+        
+            cat('Nu is an integer. Using the indirect method may slow the computation process down.', '\n')
+        } 
+              
+        
         PH1.get.cc.mvn(
-            k = k
+            m = m
             ,nu = nu
             ,FAP = FAP
             #,Phase1 = Phase1
             ,off.diag = off.diag
             #,alternative = alternative
-            ,c4.option = c4.option
+            ,var.est = var.est
+            ,ub.option = ub.option
+            ,ub.lower = ub.lower
             ,interval = indirect.interval
             #,maxsim = indirect.maxsim
             ,subdivisions = indirect.subdivisions
             ,maxiter = maxiter
             ,tol = indirect.tol
         )
-
-    }
-
-    else if (is.int == 0 && method == 'direct'){   #using multivariate normal to obtain L and K
-
-
-        stop('Nu is not an integer. Please use the indirect method instead.')
-
-
-    } else if (is.int == 0 && method == 'indirect') {
-
-        PH1.get.cc.mvn(
-            k = k
-            ,nu = nu
-            ,FAP = FAP
-            #,Phase1 = Phase1
-            ,off.diag = off.diag
-            #,alternative = alternative
-            ,c4.option = c4.option
-            ,interval = indirect.interval
-            #,maxsim = indirect.maxsim
-            ,subdivisions = indirect.subdivisions
-            ,maxiter = maxiter
-            ,tol = indirect.tol
-        )
-
+    
     } else {
-
+    
         stop('Unknown method. Please select the direct method or the indirect method.')
-
+    
     }
 
 
@@ -490,10 +467,10 @@ PH1XBAR <- function(
 			X
             ,c.i = NULL
 			,FAP = 0.1
-			,off.diag = -1/(k - 1)
+			,off.diag = -1/(m - 1)
 			#,alternative = '2-sided'
             ,model = 'ANOVA-based'
-            ,c4.option = TRUE
+            ,ub.option = 'c4'
 			,plot.option = TRUE
 			,maxiter = 10000
 			,method = 'direct'
@@ -505,7 +482,7 @@ PH1XBAR <- function(
     alternative = '2-sided'                                                   #turn off the alternative
 
 
-	k <- dim(X)[1]
+	m <- dim(X)[1]
 	n <- dim(X)[2]
 
 	X.bar <- rowMeans(X)
@@ -514,19 +491,19 @@ PH1XBAR <- function(
 
     if (model == 'ANOVA-based') {
 
-        nu <- k - 1
+        nu <- m - 1
 
-        corr.par <- corr.par.f(nu, c4.option)
+        corr.par <- corr.par.f(nu, ub.option)
 
         sigma.v <- sqrt(var(X.bar)) / corr.par
 
     } else if (model == 'basic') {
 
-        nu <- k * (n - 1)
+        nu <- m * (n - 1)
 
-        corr.par <- corr.par.f(nu, c4.option)
+        corr.par <- corr.par.f(nu, ub.option)
 
-        sigma.v <- sqrt(sum(apply(X, 1, var)) / k) / corr.par / sqrt(n)
+        sigma.v <- sqrt(sum(apply(X, 1, var)) / m) / corr.par / sqrt(n)
 
     } else {
 
@@ -536,12 +513,12 @@ PH1XBAR <- function(
 
     if (is.null(c.i)) {
         c.i <- PH1.get.cc(
-                k = k
+                m = m
                 ,nu = nu
                 ,FAP = FAP
                 ,off.diag = off.diag
                 #,alternative = alternative
-                ,c4.option = c4.option
+                ,ub.option = ub.option
                 ,maxiter = maxiter
                 ,method = method
                 ,indirect.interval = indirect.interval
@@ -559,21 +536,21 @@ PH1XBAR <- function(
 
 	if (plot.option == TRUE){
 
-		plot(c(1, k), c(LCL, UCL), xaxt = "n", xlab = 'Subgroup', ylab = 'Sample Mean', type = 'n')
+		plot(c(1, m), c(LCL, UCL), xaxt = "n", xlab = 'Subgroup', ylab = 'Sample Mean', type = 'n')
 
-		axis(side = 1, at = 1:k)
+		axis(side = 1, at = 1:m)
 
-		points(1:k, X.bar, type = 'o')
-		points(c(-1, k + 2), c(LCL, LCL), type = 'l', col = 'red')
-		points(c(-1, k + 2), c(UCL, UCL), type = 'l', col = 'red')
-		points(c(-1, k + 2), c(X.bar.bar, X.bar.bar), type = 'l', col = 'blue')
-		text(round(k * 0.8), UCL, paste('UCL = ', round(UCL, 4)), pos = 1)
-		text(round(k * 0.8), LCL, paste('LCL = ', round(LCL, 4)), pos = 3)
+		points(1:m, X.bar, type = 'o')
+		points(c(-1, m + 2), c(LCL, LCL), type = 'l', col = 'red')
+		points(c(-1, m + 2), c(UCL, UCL), type = 'l', col = 'red')
+		points(c(-1, m + 2), c(X.bar.bar, X.bar.bar), type = 'l', col = 'blue')
+		text(round(m * 0.8), UCL, paste('UCL = ', round(UCL, 4)), pos = 1)
+		text(round(m * 0.8), LCL, paste('LCL = ', round(LCL, 4)), pos = 3)
 
 
 	}
 
-	list(CL = X.bar.bar, sigma = sigma.v, PH1.cc = c.i, k = k, nu = nu, LCL = LCL, UCL = UCL, CS = X.bar)
+	list(CL = X.bar.bar, sigma = sigma.v, PH1.cc = c.i, m = m, nu = nu, LCL = LCL, UCL = UCL, CS = X.bar)
 
 }
 
