@@ -77,6 +77,9 @@ pars.root.finding <- function(k, n, lower = 1e-6) {
 
 pars.root.finding <- Vectorize(pars.root.finding, c('k', 'n'))
 
+#k <- c(3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 150, 200, 250, 300)
+
+#pars.root.finding(k, 2)
 
 ####################################################################################################################################################
     #parts of getting the charting constant l
@@ -94,16 +97,19 @@ d2.f <- function(n) {
 
 }
 
-c4.f <- function(nu) sqrt(2 / nu) * 1 / beta(nu / 2, 1 / 2) * sqrt(pi)             #c4.function
+c4.f <- function(n) sqrt(2 / (n - 1)) / beta((n - 1) / 2, 1 / 2) * sqrt(pi)             #c4.function
 
-corr.par.f <- function(nu, ub.option) {
+ub.cons.f <- function(nu, ub.option) {
         if (ub.option == 'c4') {
-            corr.par <- c4.f(nu)
+            ub.cons <- c4.f(nu)
         } else if (ub.option == 'd2') {
-            corr.par <- d2.f(2)
+            ub.cons <- d2.f(2)
         } else {
-            corr.par <- 1
+            ub.cons <- 1
         }
+        
+        ub.cons
+        
 }
 
 PH1.corr.f <- function(m, off.diag = - 1 / (m - 1)){
@@ -126,7 +132,7 @@ PH1.get.cc.mvt <- function(
                  #,Phase1 = TRUE
                  ,off.diag = -1/(m - 1)
                  #,alternative = '2-sided'
-                 ,ub.cons = 1
+                 ,ub.option = TRUE
                  ,maxiter = 10000
 
 ){
@@ -137,19 +143,18 @@ PH1.get.cc.mvt <- function(
 
     pu <- 1 - FAP
 
-    corr.par <- ub.cons
+    ub.cons <- ub.cons.f(nu, 'c4')
 
-
-        L <- ifelse(
-                alternative == '2-sided',
-                qmvt(pu, df = nu, sigma = corr.P, tail = 'both.tails', maxiter = maxiter)$quantile,
-                qmvt(pu, df = nu, sigma = corr.P, maxiter = maxiter)$quantile
-            )
+    L <- ifelse(
+            alternative == '2-sided',
+            qmvt(pu, df = nu, sigma = corr.P, tail = 'both.tails', maxiter = maxiter)$quantile,
+            qmvt(pu, df = nu, sigma = corr.P, maxiter = maxiter)$quantile
+        )
                                                       #get L by multivariate T
 
 
 
-    c.i <- L * corr.par * sqrt((m - 1) / m)             #get c.i
+    c.i <- L * ub.cons * sqrt((m - 1) / m)             #get c.i
 
     list(l = L, c.i = c.i)
 
@@ -174,9 +179,7 @@ PH1.joint.pdf.mvn.chisq <- function(
 
     s <- length(Y)
 
-    corr.par <- ub.cons
-
-    L <- c.i / sqrt((m - 1) / m * nu) * sqrt(Y) / corr.par * lambda
+    L <- c.i / sqrt((m - 1) / m * nu) * sqrt(Y) / ub.cons * lambda
 
     dpp <- lapply(
             1:s,
@@ -260,12 +263,13 @@ PH1.get.cc.mvn <- function(
     #if (is.null(off.diag)) off.diag <- ifelse(Phase1 == TRUE, - 1 /(m - 1), 1 / (m + 1))
 
     ub.cons <- 1
+    lambda <- 1
     
     if (var.est == 'MSE') {
     
         if (ub.option == TRUE) {
         
-            ub.cons <- corr.par.f(nu, 'c4')
+            ub.cons <- ub.cons.f(nu, 'c4')
             
         }
     
@@ -273,7 +277,7 @@ PH1.get.cc.mvn <- function(
     
         if (ub.option == TRUE) {
         
-            ub.cons <- corr.par.f(nu, 'd2')
+            ub.cons <- ub.cons.f(nu, 'd2')
             
             nu.lambda <- pars.root.finding(m - 1, 2, lower = ub.lower)
             
@@ -287,6 +291,8 @@ PH1.get.cc.mvn <- function(
         stop('The variance estimation is unknown.')
     
     }
+    
+    cat('nu:', nu, ', lambda:', lambda, '\n')
 
     corr.P <- PH1.corr.f(m = m, off.diag = off.diag)
 
@@ -311,20 +317,19 @@ PH1.get.cc.mvn <- function(
     
     
 
-    L <- c.i / corr.par * sqrt(m / (m - 1)) * lambda
+    L <- c.i / ub.cons * sqrt(m / (m - 1)) * lambda
 
     list(l = L, c.i = c.i)
 
 
 }
 
-#get.cc.mvn(20, 80)
 
 ####################################################################################################################################################
 
 PH1.get.cc <- function(
             m
-            ,nu = = m - 1
+            ,nu = m - 1
             ,FAP = 0.1
             ,off.diag = -1/(m - 1)
             #,alternative = '2-sided'
@@ -349,7 +354,7 @@ PH1.get.cc <- function(
     is.int <- ifelse(nu == round(nu), 1, 0)
     
     
-    if (method = 'direct') {
+    if (method == 'direct') {
     
         if (var.est == 'MSE') {
             if (is.int == 1) {
@@ -378,7 +383,7 @@ PH1.get.cc <- function(
     
     } else if (method == 'indirect') {
     
-        if (is.int == 1) {
+        if (is.int == 1 & var.est == 'MSE') {
         
             cat('Nu is an integer. Using the indirect method may slow the computation process down.', '\n')
         } 
@@ -409,6 +414,7 @@ PH1.get.cc <- function(
 
 
 }
+
 
 ####################################################################################################################################################
     #reverse the process
@@ -493,17 +499,17 @@ PH1XBAR <- function(
 
         nu <- m - 1
 
-        corr.par <- corr.par.f(nu, ub.option)
+        ub.cons <- ub.cons.f(nu, ub.option)
 
-        sigma.v <- sqrt(var(X.bar)) / corr.par
+        sigma.v <- sqrt(var(X.bar)) / ub.cons
 
     } else if (model == 'basic') {
 
         nu <- m * (n - 1)
 
-        corr.par <- corr.par.f(nu, ub.option)
+        ub.cons <- ub.cons.f(nu, ub.option)
 
-        sigma.v <- sqrt(sum(apply(X, 1, var)) / m) / corr.par / sqrt(n)
+        sigma.v <- sqrt(sum(apply(X, 1, var)) / m) / ub.cons / sqrt(n)
 
     } else {
 
