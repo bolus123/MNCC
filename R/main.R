@@ -463,13 +463,15 @@ PH1.get.cc.mvn.MC <- function(
     if (ub.option == TRUE) {
       
       ub.cons <- ub.cons.f(nu, 'd2')
-      
+    
+    }
+    
       nu.lambda <- pars.root.finding(m - 1, 2, lower = ub.lower)
       
       nu <- nu.lambda[1]
       lambda <- nu.lambda[2]
       
-    }
+    
     
   } else {
     
