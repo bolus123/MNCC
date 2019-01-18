@@ -233,6 +233,8 @@ PH1.root.mvn.F <- function(
             rel.tol = rel.tol
         )$value
 
+    cat('ci:', c.i, ' and pu - pp:', pu - pp, '\n')
+        
     pu - pp
 
 
