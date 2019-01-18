@@ -278,13 +278,15 @@ PH1.get.cc.mvn <- function(
         if (ub.option == TRUE) {
         
             ub.cons <- ub.cons.f(nu, 'd2')
-            
+        
+        }
+        
             nu.lambda <- pars.root.finding(m - 1, 2, lower = ub.lower)
             
             nu <- nu.lambda[1]
             lambda <- nu.lambda[2]
         
-        }
+        
     
     } else {
     
@@ -337,8 +339,6 @@ PH1.rmvn.MC <- function(sim, sigma) {
 }
 
 
-
-
 PH1.joint.pdf.mvn.chisq.MC <- function(
   Y
   ,c.i
@@ -375,10 +375,11 @@ PH1.joint.pdf.mvn.chisq.MC <- function(
   
   dpp <- unlist(dpp)
   
-  dpp * dchisq(Y, df = nu)
+  dpp
   
   
 }
+
 
 
 PH1.root.mvn.F.MC <- function(
@@ -391,30 +392,25 @@ PH1.root.mvn.F.MC <- function(
   #, alternative = '2-sided'
   , ub.cons = 1
   , X
-  , subdivisions = 2000
-  , rel.tol = 1e-2 
+  , Y
 ){
   alternative = '2-sided'                                                   #turn off the alternative
+
+    pp <- mean(
+      PH1.joint.pdf.mvn.chisq.MC(
+              Y = Y,
+              c.i = c.i,
+              m = m,
+              nu = nu,
+              sigma = sigma,
+              lambda = lambda,
+              #alternative = alternative,
+              ub.cons = ub.cons,
+              X = X
+      )
+    )
   
-  
-    
-    pp <- integrate(
-      PH1.joint.pdf.mvn.chisq.MC,
-      lower = 0,
-      upper = Inf,
-      c.i = c.i,
-      m = m,
-      nu = nu,
-      sigma = sigma,
-      lambda = lambda,
-      #alternative = alternative,
-      ub.cons = ub.cons,
-      X = X,
-      subdivisions = subdivisions,
-      rel.tol = rel.tol
-    )$value
-  
-  cat('ci:', c.i, ' and pu - pp:', pu - pp, '\n')
+  cat('ci:', c.i, ' and diff:', pu - pp, '\n')
   
   pu - pp
   
@@ -433,9 +429,9 @@ PH1.get.cc.mvn.MC <- function(
   ,ub.option = TRUE
   ,ub.lower = 1e-6
   ,sim.X = 10000
+  ,sim.Y = 10000
   ,interval = c(1, 7)
   ,maxiter = 10000
-  ,subdivisions = 2000
   ,tol = 1e-2 
 ){
   alternative = '2-sided'                                                   #turn off the alternative
@@ -484,6 +480,7 @@ PH1.get.cc.mvn.MC <- function(
   corr.P <- PH1.corr.f(m = m, off.diag = off.diag)
   
   X <- PH1.rmvn.MC(sim = sim.X, sigma = corr.P)
+  Y <- rchisq(sim.Y, nu)
   
   pu <- 1 - FAP
   
@@ -499,9 +496,8 @@ PH1.get.cc.mvn.MC <- function(
     #alternative = alternative,
     ub.cons = ub.cons,
     X = X,
-    subdivisions = subdivisions,
+    Y = Y,
     tol = tol,
-    rel.tol = tol,
     maxiter = maxiter
   )$root
   
@@ -513,6 +509,7 @@ PH1.get.cc.mvn.MC <- function(
   
   
 }
+
 
 ####################################################################################################################################################
 
