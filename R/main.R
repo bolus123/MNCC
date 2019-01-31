@@ -97,7 +97,7 @@ d2.f <- function(n) {
 
 }
 
-c4.f <- function(n) sqrt(2 / (n - 1)) / beta((n - 1) / 2, 1 / 2) * sqrt(pi)             #c4.function
+c4.f <- function(nu) sqrt(2 / (nu)) / beta((nu) / 2, 1 / 2) * sqrt(pi)             #c4.function
 
 ub.cons.f <- function(nu, ub.option) {
         if (ub.option == 'c4') {
